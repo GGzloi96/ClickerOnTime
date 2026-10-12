@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ClickerOnTime/ClickerOnTime.csproj" />
+  <Project Path="LibraryForTimeClicker/LibraryForTimeClicker.csproj" />
+</Solution>

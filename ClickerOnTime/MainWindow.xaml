@@ -1,0 +1,79 @@
+﻿<Window x:Class="ClickerOnTime.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ClickerOnTime"
+        mc:Ignorable="d"
+                Title="Кликер"
+        Height="600" Width="800"
+        Background="#1E1E2E">
+
+    <!-- Сетка из 3 строк: панель сверху, игровое поле, панель снизу -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <!-- 0: верхняя панель -->
+            <RowDefinition Height="*"/>
+            <!-- 1: игровое поле (растягивается) -->
+            <RowDefinition Height="50"/>
+            <!-- 2: нижняя панель -->
+        </Grid.RowDefinitions>
+
+        <!-- === ВЕРХНЯЯ ПАНЕЛЬ: счёт, время, кнопка старт/пауза === -->
+        <Grid Grid.Row="0" Background="#2A2A3E">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Счёт игрока -->
+            <TextBlock x:Name="ScoreText"
+                       Grid.Column="0"
+                       Text="Очки: 0"
+                       Foreground="White"
+                       FontSize="18"
+                       VerticalAlignment="Center"
+                       Margin="20,0,0,0"/>
+
+            <!-- Оставшееся время игры -->
+            <TextBlock x:Name="TimeText"
+                       Grid.Column="1"
+                       Text="Время: 30.0 сек"
+                       Foreground="White"
+                       FontSize="18"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+
+            <!-- Кнопка старта/паузы -->
+            <Button x:Name="StartButton"
+                    Grid.Column="2"
+                    Content="Старт"
+                    Width="120" Height="34"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,20,0" Click="StartButton_Click"
+                    />
+        </Grid>
+
+        <!-- === ИГРОВОЕ ПОЛЕ: сюда рисуются объекты (цели) === -->
+        <!-- Canvas — это "холст", где объекты размещаются по координатам X,Y -->
+        <Canvas x:Name="GameCanvas"
+                Grid.Row="1"
+                Background="#15151F"
+                ClipToBounds="True" MouseDown="GameCanvas_MouseDown"/>
+        
+        <Canvas x:Name="MessageCanvas"
+            IsHitTestVisible="False"
+            Background="Transparent"/>
+
+        <!-- === НИЖНЯЯ ПАНЕЛЬ: подсказка === -->
+        <Grid Grid.Row="2" Background="#2A2A3E">
+            <TextBlock Text="Кликай по кругам! Каждое попадание — очки."
+                       Foreground="#AAAAAA"
+                       FontSize="14"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Center"/>
+        </Grid>
+</Grid>
+</Window>
