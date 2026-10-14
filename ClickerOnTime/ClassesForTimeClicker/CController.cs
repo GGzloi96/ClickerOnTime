@@ -5,27 +5,35 @@ using System.Windows;
 
 namespace ClickerOnTime.ClassesForTimeClicker
 {
-    internal class CController
+    public class CController
     {
-        private List<CObject> objects;   // Список активных объектов на сцене
-        private double spawnRate;        // Частота появления объектов (объектов в секунду)
-        private double time;             // Накопленное время с последнего спавна
-        private Random rng;              // Генератор случайных чисел
-        private double maxLifetime;      // Максимальное время жизни объекта
-        private double minLifetime;      // Минимальное время жизни объекта
-        private double maxSpriteSize;    // Максимальный размер спрайта
-        private double minSpriteSize;    // Минимальный размер спрайта
-        private Size sceneSize;          // Размер игровой сцены (Width, Height)
+        // --- Поля ---
+        private List<CCollectable> objects;
+        private double spawnRate;
+        private double time;
+        private Random rng;
+        private double maxLifetime;
+        private double minLifetime;
+        private double maxSpriteSize;
+        private double minSpriteSize;
+        private Size sceneSize;
         private double points;
 
-        public List<CObject> GetObjects() => objects;
+        // --- Геттеры ---
+        public List<CCollectable> GetObjects() => objects;
         public double GetPoints() => points;
+        public double SpawnRate => spawnRate;
+        public double MinLifetime => minLifetime;
+        public double MaxLifetime => maxLifetime;
+
+        // --- Событие для анимации смерти ---
         public event Action<double, double> ObjectDied;
 
+        // --- Конструктор ---
         public CController(double spawnRate, int startTime, Size sceneSize)
         {
             rng = new Random();
-            objects = new List<CObject>();
+            objects = new List<CCollectable>();
             this.spawnRate = spawnRate;
             time = startTime;
             this.sceneSize = sceneSize;
@@ -36,50 +44,108 @@ namespace ClickerOnTime.ClassesForTimeClicker
             maxSpriteSize = 50;
         }
 
+        // =========================================================
+        //  МЕТОДЫ ДЛЯ БОНУСОВ
+        // =========================================================
+
+        /// <summary>Добавить очки. Вызывает CPointGiver.</summary>
+        public void pointsIncrease(double value)
+        {
+            points += value;
+        }
+
+        /// <summary>
+        /// Изменить границы времени жизни для НОВЫХ объектов.
+        /// modifier < 1 — уменьшить, modifier > 1 — увеличить.
+        /// Вызывает CLifetimeModifier.
+        /// </summary>
+        public void changeLifetime(double modifier)
+        {
+            if (modifier <= 0) return;   // защита от некорректного множителя
+
+            minLifetime *= modifier;
+            maxLifetime *= modifier;
+
+            if (minLifetime < 0.1) minLifetime = 0.1;
+            if (maxLifetime < minLifetime) maxLifetime = minLifetime;
+        }
+
+        /// <summary>
+        /// Изменить скорость спавна. modifier < 1 — спавн чаще, > 1 — реже.
+        /// Вызывает CSpawnRateChanger.
+        /// </summary>
+        public void changeSpawnRate(double modifier)
+        {
+            if (modifier <= 0) return;
+
+            spawnRate *= modifier;
+
+            // ограничиваем разумными рамками
+            if (spawnRate < 0.05) spawnRate = 0.05;
+            if (spawnRate > 20) spawnRate = 20;
+        }
+
+        // =========================================================
+        //  ОСНОВНЫЕ МЕТОДЫ
+        // =========================================================
+
+        /// <summary>Создать новый случайный объект на сцене.</summary>
         public void spawnObject()
         {
-            // Генерируем случайный размер
             double sizeValue = minSpriteSize + rng.NextDouble() * (maxSpriteSize - minSpriteSize);
-
-            // Генерируем случайную позицию (учитывая размер, чтобы объект не выходил за границы)
             double x = rng.NextDouble() * Math.Max(0, sceneSize.Width - sizeValue);
             double y = rng.NextDouble() * Math.Max(0, sceneSize.Height - sizeValue);
             Point position = new Point(x, y);
-
-            // Генерируем случайное время жизни
             double lifetime = minLifetime + rng.NextDouble() * (maxLifetime - minLifetime);
 
-            // Создаем объект
-            CObject newObj = new CObject(position, sizeValue, lifetime);
+            // Случайный тип бонуса
+            int type = rng.Next(4);
+            CCollectable newObj;
+            switch (type)
+            {
+                case 0:
+                    newObj = new CPointGiver(position, sizeValue, lifetime);
+                    break;
+                case 1:
+                    newObj = new CClickSpeedUp(position, sizeValue, lifetime, 0.1);
+                    break;
+                case 2:
+                    newObj = new CLifetimeModifier(position, sizeValue, lifetime, 0.9);
+                    break;
+                default:
+                    newObj = new CSpawnRateChanger(position, sizeValue, lifetime, 0.9);
+                    break;
+            }
 
-            // Добавляем в список
             objects.Add(newObj);
         }
 
-        public void destroyObject(CObject obj)
+        /// <summary>Удалить объект со сцены.</summary>
+        public void destroyObject(CCollectable obj)
         {
             if (objects.Contains(obj))
-            {
                 objects.Remove(obj);
-            }
         }
 
+        /// <summary>
+        /// Обновление состояния: спавн по таймеру + уменьшение lifetime.
+        /// Вызывается из MainWindow.Timer_Tick.
+        /// </summary>
         public void update(double delta)
         {
-            // ШАГ 1. Обновляем таймер спавна
+            // ШАГ 1. Спавн
             time += delta;
-            double spawnInterval = 1.0 / spawnRate; // Интервал между спавнами
-
+            double spawnInterval = 1.0 / spawnRate;
             if (time >= spawnInterval)
             {
                 spawnObject();
                 time -= spawnInterval;
             }
 
-            // ШАГ 2. Обновляем все объекты и удаляем "мертвые"
+            // ШАГ 2. Обновление и удаление мёртвых
             for (int i = objects.Count - 1; i >= 0; i--)
             {
-                CObject obj = objects[i];
+                CCollectable obj = objects[i];
 
                 if (!obj.updateLifetime(delta))
                 {
@@ -89,27 +155,21 @@ namespace ClickerOnTime.ClassesForTimeClicker
             }
         }
 
-        public void mouseClick(Point mousePosition)
+        /// <summary>
+        /// Обработка клика. Каждый объект сам решает, что делать.
+        /// player нужен, потому что бонус CClickSpeedUp меняет состояние игрока.
+        /// </summary>
+        public void mouseClick(Point mousePosition, CPlayer player)
         {
-            // Ищем объект, по которому кликнули (проверяем с конца, чтобы взять верхний)
             for (int i = objects.Count - 1; i >= 0; i--)
             {
-                CObject obj = objects[i];
-
-                if (obj.isMouseOnObject(mousePosition))
+                // onClick вернёт true, если клик попал и объект нужно удалить
+                if (objects[i].onClick(player, this, mousePosition))
                 {
-                    // Начисляем очки
-                    points += obj.getPointsValue();
-
-                    // Удаляем объект
-                    destroyObject(obj);
-
-                    // Прерываем цикл, так как клик обработан
-                    break;
+                    destroyObject(objects[i]);
+                    break;   // клик обработан — выходим
                 }
             }
-
-
         }
     }
 }

@@ -19,12 +19,12 @@ namespace ClickerOnTime
     public partial class MainWindow : Window
     {
         private CController controller;
+        private CPlayer player;                 // <-- НОВОЕ
         private DispatcherTimer timer;
         private DateTime lastTick;
         private double timeLeft;
-        private const double GameDuration = 30.0; // длительность раунда
+        private const double GameDuration = 30.0;
         private bool isRunning = false;
-
 
         public MainWindow()
         {
@@ -41,7 +41,6 @@ namespace ClickerOnTime
             double delta = (now - lastTick).TotalSeconds;
             lastTick = now;
 
-            // Защита от «скачков» после паузы окна
             if (delta > 0.3) delta = 0.3;
 
             timeLeft -= delta;
@@ -52,11 +51,13 @@ namespace ClickerOnTime
                 return;
             }
 
-            // Обновляем логику и перерисовываем сцену
+            // Обновляем логику
             controller.update(delta);
+            player.update(delta);               // <-- НОВОЕ: тикает кулдаун игрока
             Redraw();
+            UpdateModifiersPanel();
 
-            // Обновляем интерфейс
+            // Интерфейс
             ScoreText.Text = $"Score: {controller.GetPoints():0}";
             TimeText.Text = $"Time: {timeLeft:0,0}s";
         }
@@ -79,13 +80,16 @@ namespace ClickerOnTime
             isRunning = true;
             StartButton.IsEnabled = false;
 
-            // Создаём контроллер под текущий размер холста
+            // Контроллер
             controller = new CController(
                 spawnRate: 2.0,
                 startTime: 0,
                 sceneSize: new Size(GameCanvas.ActualWidth, GameCanvas.ActualHeight)
             );
             controller.ObjectDied += ShowDeathMessage;
+
+            // Игрок — новый на каждый раунд
+            player = new CPlayer(timeBeforeClick: 0.5);   // <-- НОВОЕ
 
             GameCanvas.Children.Clear();
 
@@ -96,23 +100,19 @@ namespace ClickerOnTime
 
         private void ShowDeathMessage(double x, double y)
         {
-            // Создаём текст
             TextBlock label = new TextBlock
             {
                 Text = "ЛОХ!",
                 Foreground = System.Windows.Media.Brushes.Red,
                 FontSize = 14,
-                FontWeight = System.Windows.FontWeights.Bold
+                FontWeight = FontWeights.Bold
             };
 
-            // Ставим рядом с местом, где был кружок (чуть ниже и правее)
             Canvas.SetLeft(label, x + 5);
             Canvas.SetTop(label, y + 5);
 
-            // Добавляем на холст
             MessageCanvas.Children.Add(label);
 
-            // === НОВОЕ: через 1 секунду удаляем надпись ===
             var removeTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             removeTimer.Tick += (s, e) =>
             {
@@ -127,7 +127,44 @@ namespace ClickerOnTime
             if (!isRunning) return;
 
             Point p = e.GetPosition(GameCanvas);
-            controller.mouseClick(p);
+
+            // Сначала проверяем кулдаун игрока, потом обрабатываем клик
+            if (player.tryClick())                      // <-- НОВОЕ
+            {
+                controller.mouseClick(p, player);       // <-- передаём player
+            }
+        }
+
+        private void UpdateModifiersPanel()
+        {
+            ModifiersPanel.Children.Clear();
+
+            // 1. Перезарядка клика
+            ModifiersPanel.Children.Add(new TextBlock
+            {
+                Text = $"Клик: {player.TimeBeforeClick:0.00} с",
+                Foreground = System.Windows.Media.Brushes.HotPink,
+                FontSize = 13,
+                Margin = new Thickness(0, 2, 0, 2)
+            });
+
+            // 2. Время жизни
+            ModifiersPanel.Children.Add(new TextBlock
+            {
+                Text = $"Жизнь: {controller.MinLifetime:0.0}–{controller.MaxLifetime:0.0} с",
+                Foreground = System.Windows.Media.Brushes.Yellow,
+                FontSize = 13,
+                Margin = new Thickness(0, 2, 0, 2)
+            });
+
+            // 3. Скорость спавна
+            ModifiersPanel.Children.Add(new TextBlock
+            {
+                Text = $"Спавн: {controller.SpawnRate:0.0} /с",
+                Foreground = System.Windows.Media.Brushes.Orange,
+                FontSize = 13,
+                Margin = new Thickness(0, 2, 0, 2)
+            });
         }
 
         private void EndGame()
