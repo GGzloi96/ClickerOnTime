@@ -52,13 +52,17 @@ namespace ClickerOnTime
                 return;
             }
 
-            // Обновляем логику и перерисовываем сцену
-            controller.update(delta);
+            controller.Update(delta);
             Redraw();
 
-            // Обновляем интерфейс
             ScoreText.Text = $"Score: {controller.GetPoints():0}";
             TimeText.Text = $"Time: {timeLeft:0,0}s";
+
+            StatCooldown.Text = $"{controller.GetMaxCooldown():0.00} сек";
+            StatLifetime.Text = $"{controller.GetMaxLifetime():0.00} сек";
+            StatSpawnInterval.Text = $"{controller.GetSpawnInterval():0.00} сек";
+
+            StatBonus.Text = "x3 очка";
         }
 
         private void Redraw()
@@ -127,7 +131,7 @@ namespace ClickerOnTime
             if (!isRunning) return;
 
             Point p = e.GetPosition(GameCanvas);
-            controller.mouseClick(p);
+            controller.MouseClick(p);
         }
 
         private void EndGame()

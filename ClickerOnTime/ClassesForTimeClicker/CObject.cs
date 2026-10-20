@@ -1,25 +1,23 @@
-﻿using System.Windows;
+﻿using ClickerOnTime.ClassesForTimeClicker;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
 namespace ClickerOnTime
 {
-    public class CObject
+    public abstract class CObject
     {
-        // --- Поля (private, как требует инкапсуляция) ---
-        private Point position;       // левый верхний угол объекта
-        private Size size;            // размер (Width = Height)
-        private double lifetime;      // сколько ещё проживёт (в секундах)
-        private double pointsValue;   // сколько очков даёт за клик
-        private Ellipse sprite;       // визуальная фигура
+        private Point position;       
+        private Size size;            
+        private double lifetime;      
+        private double pointsValue;   
+        private Ellipse sprite;       
 
-        // Публичные свойства только для чтения — чтобы контроллер мог читать
         public Point Position => position;
         public Size Size => size;
         public double Lifetime => lifetime;
         public double PointsValue => pointsValue;
 
-        // --- Конструктор ---
         public CObject(Point position, double size, double lifetime)
         {
             this.position = position;
@@ -28,11 +26,10 @@ namespace ClickerOnTime
 
             // Создаём кружок
             sprite = new Ellipse();
-            sprite.Fill = Brushes.BlueViolet;
+            sprite.Fill = GetColor();
             sprite.StrokeThickness = 2;
             sprite.Stroke = Brushes.Black;
 
-            // Размеры
             sprite.Width = this.size.Width;
             sprite.Height = this.size.Height;
 
@@ -43,12 +40,12 @@ namespace ClickerOnTime
             pointsValue = ((1 / this.size.Width) / lifetime) * 1000;
         }
 
-        // --- Методы из UML ---
+        protected abstract Brush GetColor();
 
-        /// <summary>Проверяет, попал ли курсор в объект.</summary>
+        public abstract void OnClick(CController controller);
+
         public bool isMouseOnObject(Point mousePosition)
         {
-            // Область объекта — квадрат со стороной size.Width
             double dx = mousePosition.X - position.X;
             double dy = mousePosition.Y - position.Y;
 
@@ -68,6 +65,10 @@ namespace ClickerOnTime
             lifetime -= delta;
             return lifetime > 0;
         }
-    }
 
+        public void AddLifetime(double amount)
+        {
+            lifetime += amount;
+        }
+    }
 }

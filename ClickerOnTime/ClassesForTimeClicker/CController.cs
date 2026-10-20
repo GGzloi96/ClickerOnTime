@@ -5,7 +5,7 @@ using System.Windows;
 
 namespace ClickerOnTime.ClassesForTimeClicker
 {
-    internal class CController
+    public class CController
     {
         private List<CObject> objects;   // Список активных объектов на сцене
         private double spawnRate;        // Частота появления объектов (объектов в секунду)
@@ -17,10 +17,18 @@ namespace ClickerOnTime.ClassesForTimeClicker
         private double minSpriteSize;    // Минимальный размер спрайта
         private Size sceneSize;          // Размер игровой сцены (Width, Height)
         private double points;
+        private double cooldown;
+        private double maxCooldown;
+        private double baseSpawnRate = 2.0;
+        private double spawnInterval => 1.0 / spawnRate;
 
         public List<CObject> GetObjects() => objects;
         public double GetPoints() => points;
         public event Action<double, double> ObjectDied;
+
+        public double GetMaxCooldown() => maxCooldown;
+        public double GetMaxLifetime() => maxLifetime;
+        public double GetSpawnInterval() => spawnInterval;
 
         public CController(double spawnRate, int startTime, Size sceneSize)
         {
@@ -34,9 +42,29 @@ namespace ClickerOnTime.ClassesForTimeClicker
             maxLifetime = 5;
             minSpriteSize = 20;
             maxSpriteSize = 50;
+            cooldown = 0.35; //изменяется
+            maxCooldown = 0.35; //для вывода на окно - статистика
         }
 
-        public void spawnObject()
+        public void AddPoints(double amount) => points += amount;
+
+        public void ReduceCooldown(double amount)
+        {
+            maxCooldown -= amount;
+            if (maxCooldown < 0.1) maxCooldown = 0.1;
+        }
+
+        public void IncreaseSpawnRate(double amount) => spawnRate += amount;
+
+        public void IncreaseAllLifetimes(double amount)
+        {
+            foreach (var obj in objects)
+            {
+                obj.AddLifetime(amount);
+            }
+        }
+
+        public void SpawnObject()
         {
             // Генерируем случайный размер
             double sizeValue = minSpriteSize + rng.NextDouble() * (maxSpriteSize - minSpriteSize);
@@ -49,14 +77,34 @@ namespace ClickerOnTime.ClassesForTimeClicker
             // Генерируем случайное время жизни
             double lifetime = minLifetime + rng.NextDouble() * (maxLifetime - minLifetime);
 
-            // Создаем объект
-            CObject newObj = new CObject(position, sizeValue, lifetime);
+            CObject newObj;
+            double chance = rng.NextDouble();
 
-            // Добавляем в список
+            if (chance < 0.10)
+            {
+                newObj = new BonusPointsSphere(position, sizeValue, lifetime); 
+            }
+            else if (chance < 0.20)
+            {
+                newObj = new ReduceCooldownSphere(position, sizeValue, lifetime); 
+            }
+            else if (chance < 0.25) // 5% шанс
+            {
+                newObj = new IncreaseLifetimeSphere(position, sizeValue, lifetime); 
+            }
+            else if (chance < 0.30) // 5% шанс
+            {
+                newObj = new ReduceSpawnRateSphere(position, sizeValue, lifetime); 
+            }
+            else
+            {
+                newObj = new NormalSphere(position, sizeValue, lifetime); 
+            }
+
             objects.Add(newObj);
         }
 
-        public void destroyObject(CObject obj)
+        public void DestroyObject(CObject obj)
         {
             if (objects.Contains(obj))
             {
@@ -64,19 +112,22 @@ namespace ClickerOnTime.ClassesForTimeClicker
             }
         }
 
-        public void update(double delta)
+        public void Update(double delta)
         {
-            // ШАГ 1. Обновляем таймер спавна
+            if (cooldown < delta) cooldown = 0;
+            else cooldown -= delta;
+
+            //Обновляем таймер спавна
             time += delta;
             double spawnInterval = 1.0 / spawnRate; // Интервал между спавнами
 
             if (time >= spawnInterval)
             {
-                spawnObject();
+                SpawnObject();
                 time -= spawnInterval;
             }
 
-            // ШАГ 2. Обновляем все объекты и удаляем "мертвые"
+            //Обновляем все объекты и удаляем "мертвые"
             for (int i = objects.Count - 1; i >= 0; i--)
             {
                 CObject obj = objects[i];
@@ -84,32 +135,27 @@ namespace ClickerOnTime.ClassesForTimeClicker
                 if (!obj.updateLifetime(delta))
                 {
                     ObjectDied?.Invoke(obj.Position.X, obj.Position.Y);
-                    destroyObject(obj);
+                    DestroyObject(obj);
                 }
             }
         }
 
-        public void mouseClick(Point mousePosition)
+        public void MouseClick(Point mousePosition)
         {
-            // Ищем объект, по которому кликнули (проверяем с конца, чтобы взять верхний)
+            if (cooldown > 0) return;
+            cooldown = maxCooldown;
+
             for (int i = objects.Count - 1; i >= 0; i--)
             {
                 CObject obj = objects[i];
 
                 if (obj.isMouseOnObject(mousePosition))
                 {
-                    // Начисляем очки
-                    points += obj.getPointsValue();
-
-                    // Удаляем объект
-                    destroyObject(obj);
-
-                    // Прерываем цикл, так как клик обработан
+                    obj.OnClick(this);
+                    DestroyObject(obj);
                     break;
                 }
             }
-
-
         }
     }
 }

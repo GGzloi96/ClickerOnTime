@@ -3,77 +3,61 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ClickerOnTime"
         mc:Ignorable="d"
-                Title="Кликер"
-        Height="600" Width="800"
-        Background="#1E1E2E">
+        Title="Кликер" Height="600" Width="950" Background="#1E1E2E">
 
-    <!-- Сетка из 3 строк: панель сверху, игровое поле, панель снизу -->
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
-            <!-- 0: верхняя панель -->
-            <RowDefinition Height="*"/>
-            <!-- 1: игровое поле (растягивается) -->
-            <RowDefinition Height="50"/>
-            <!-- 2: нижняя панель -->
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="200"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- === ВЕРХНЯЯ ПАНЕЛЬ: счёт, время, кнопка старт/пауза === -->
-        <Grid Grid.Row="0" Background="#2A2A3E">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="50"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="50"/>
+            </Grid.RowDefinitions>
 
-            <!-- Счёт игрока -->
-            <TextBlock x:Name="ScoreText"
-                       Grid.Column="0"
-                       Text="Очки: 0"
-                       Foreground="White"
-                       FontSize="18"
-                       VerticalAlignment="Center"
-                       Margin="20,0,0,0"/>
+            <Grid Grid.Row="0" Background="#2A2A3E">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- Оставшееся время игры -->
-            <TextBlock x:Name="TimeText"
-                       Grid.Column="1"
-                       Text="Время: 30.0 сек"
-                       Foreground="White"
-                       FontSize="18"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
+                <TextBlock x:Name="ScoreText" Grid.Column="0" Text="Score: 0" Foreground="White" FontSize="18" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                <TextBlock x:Name="TimeText" Grid.Column="1" Text="Time: 30s" Foreground="White" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Button x:Name="StartButton" Grid.Column="2" Content="Старт" Width="120" Height="34" HorizontalAlignment="Right" Margin="0,0,20,0" Click="StartButton_Click"/>
+            </Grid>
 
-            <!-- Кнопка старта/паузы -->
-            <Button x:Name="StartButton"
-                    Grid.Column="2"
-                    Content="Старт"
-                    Width="120" Height="34"
-                    HorizontalAlignment="Right"
-                    Margin="0,0,20,0" Click="StartButton_Click"
-                    />
+            <!-- Игровое поле -->
+            <Canvas x:Name="GameCanvas" Grid.Row="1" Background="#15151F" ClipToBounds="True" MouseDown="GameCanvas_MouseDown"/>
+            <Canvas x:Name="MessageCanvas" Grid.Row="1" IsHitTestVisible="False" Background="Transparent"/>
+
+            <!-- Нижняя панель -->
+            <Grid Grid.Row="2" Background="#2A2A3E">
+                <TextBlock Text="Aim Bot" Foreground="#AAAAAA" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </Grid>
         </Grid>
 
-        <!-- === ИГРОВОЕ ПОЛЕ: сюда рисуются объекты (цели) === -->
-        <!-- Canvas — это "холст", где объекты размещаются по координатам X,Y -->
-        <Canvas x:Name="GameCanvas"
-                Grid.Row="1"
-                Background="#15151F"
-                ClipToBounds="True" MouseDown="GameCanvas_MouseDown"/>
-        
-        <Canvas x:Name="MessageCanvas"
-            IsHitTestVisible="False"
-            Background="Transparent"/>
+        <!-- Статистика -->
+        <Grid Grid.Column="1" Background="#252535">
+            <StackPanel Margin="15,20,15,0">
+                <TextBlock Text="Статистика" Foreground="White" FontSize="20" FontWeight="Bold" Margin="0,0,0,20"/>
 
-        <!-- === НИЖНЯЯ ПАНЕЛЬ: подсказка === -->
-        <Grid Grid.Row="2" Background="#2A2A3E">
-            <TextBlock Text="Кликай по кругам! Каждое попадание — очки."
-                       Foreground="#AAAAAA"
-                       FontSize="14"
-                       VerticalAlignment="Center"
-                       HorizontalAlignment="Center"/>
+                <TextBlock Text="Перезарядка клика:" Foreground="#AAAAAA" FontSize="14" Margin="0,0,0,5"/>
+                <TextBlock x:Name="StatCooldown" Text="0.50 сек" Foreground="White" FontSize="16" Margin="0,0,0,15"/>
+
+                <TextBlock Text="Макс. время жизни:" Foreground="#AAAAAA" FontSize="14" Margin="0,0,0,5"/>
+                <TextBlock x:Name="StatLifetime" Text="5.00 сек" Foreground="White" FontSize="16" Margin="0,0,0,15"/>
+
+                <TextBlock Text="Интервал спавна:" Foreground="#AAAAAA" FontSize="14" Margin="0,0,0,5"/>
+                <TextBlock x:Name="StatSpawnInterval" Text="0.50 сек" Foreground="White" FontSize="16" Margin="0,0,0,15"/>
+
+                <TextBlock Text="Бонус (Желтая):" Foreground="#AAAAAA" FontSize="14" Margin="0,0,0,5"/>
+                <TextBlock x:Name="StatBonus" Text="x3" Foreground="Yellow" FontSize="16"/>
+            </StackPanel>
         </Grid>
-</Grid>
+    </Grid>
 </Window>
